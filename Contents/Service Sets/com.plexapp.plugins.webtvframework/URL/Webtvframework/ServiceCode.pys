@@ -1,15 +1,53 @@
-import re
+VIDEO_URL = 'http://quadia.webtvframework.com/demo/_function/attribute.video.retrieve?id=%d'
 
+####################################################################################################
 def NormalizeURL(url):
-  return 'http://quadia.webtvframework.com/demo/_function/asset.get?id=12688'
- 
+
+	return 'http://quadia.webtvframework.com/demo/_function/asset.get?id=12688'
+
+####################################################################################################
 def MetadataObjectForURL(url):
-  json = JSON.ObjectFromURL(url)
-  return VideoClipObject(
-            title = json.result.asset.type,
-            summary = 'summary',
-            thumb = 'thumb')
- 
-@deferred
+
+	json = JSON.ObjectFromURL(url)
+
+	if 'message' in json and json['message'] == 'OK':
+		meta = json['result']['meta']
+
+		title_key = meta['title']['values'].keys()[0]
+		title = meta['title']['values'][title_key][0]['value']
+
+		summary_key = meta['description']['values'].keys()[0]
+		summary = meta['description']['values'][summary_key][0]['value']
+		summary = String.StripTags(summary)
+
+		return VideoClipObject(
+			title = title,
+			summary = summary
+		)
+
+####################################################################################################
 def MediaObjectsForURL(url):
-  return URLService.MediaObjectsForURL('http://quadia.webtvframework.com/demo/_function/attribute.video.retrieve?id=12671')
+
+	return [
+		MediaObject(
+			parts = [PartObject(key=Callback(PlayVideo, url=url))],
+			video_codec = VideoCodec.H264,
+			audio_codec = AudioCodec.AAC,
+			container = Container.MP4,
+			bitrate = 700,
+			video_resolution = '360',
+			audio_channels = 2,
+			optimized_for_streaming = True
+		)
+	]
+
+####################################################################################################
+def PlayVideo(url):
+
+	json = JSON.ObjectFromURL(url)
+
+	if 'message' in json and json['message'] == 'OK':
+		attribute_id = json['result']['asset_simplemovie']['attribute_id']
+		url = VIDEO_URL % attribute_id
+
+		return Redirect(url)
